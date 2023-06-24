@@ -501,8 +501,21 @@ namespace InexperiencedDeveloper.Chess.Core
                 {
                     if (moves.Any(move => move.Pos == pos))
                     {
+
                         ThreatenedSquares.Add(move.Pos);
                         return true;
+                    }
+                }
+                foreach(var moves in enemy.TeamThreats.Values)
+                {
+                    if((piece != null && moves.Any(move => move == piece.CurrentPos)))
+                    {
+                        if (piece != null)
+                        {
+                            Debug.Log("Piece: " + piece);
+                            ThreatenedSquares.Add(move.Pos);
+                            return true;
+                        }
                     }
                 }
             }
@@ -522,8 +535,12 @@ namespace InexperiencedDeveloper.Chess.Core
             }
             else if (m_piece.PieceType != PieceType.Pawn && piece.Team != Team)
             {
+                if ((m_player != null && Piece.PieceType == PieceType.King && m_player.InCheck.inCheck))
+                {
+
+                }
                 if (m_piece.PieceType != PieceType.Pawn)
-                    ThreatenedSquares.Add(move.Pos);
+                        ThreatenedSquares.Add(move.Pos);
                 if (canMoveHere && pinnedSquares == null)
                 {
                     canMoveHere = false;
@@ -539,7 +556,8 @@ namespace InexperiencedDeveloper.Chess.Core
             }
             else
             {
-                return false;
+                ThreatenedSquares.Add(move.Pos);
+                return true;
             }
         }
 
