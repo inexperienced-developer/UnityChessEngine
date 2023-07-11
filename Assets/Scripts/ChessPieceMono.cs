@@ -109,6 +109,9 @@ namespace InexperiencedDeveloper.Chess.Core
         }
         #endregion
         #region Helpers
+        /// <summary>
+        /// Clears all grid squares (used for resetting possible move visuals)
+        /// </summary>
         private void ClearSquares()
         {
             foreach (var val in ChessSpawner.ActiveGrids)
@@ -140,13 +143,16 @@ namespace InexperiencedDeveloper.Chess.Core
         #endregion
         public void Move(Move newMove)
         {
+            //Pretty straight forward
             HasMoved = true;
             string lastPos = CurrentPos;
             CurrentPos = newMove.Pos;
+            //Can change to interpolation or whatever depending on use case
             transform.position = ChessGridManager.GridPositions[CurrentPos];
             PossibleMoves.Clear();
             ClearSquares();
             FindPossibleMoves();
+            //Make sure to check every move if we are checking the king
             if (PossibleMoves.Any((move) =>
             {
                 GameManager.ChessPieces.TryGetValue(move.Pos, out ChessPieceMono piece);
@@ -158,10 +164,15 @@ namespace InexperiencedDeveloper.Chess.Core
                 GameManager.OnInCheck(this, check.checkingSquares, otherTeam);
             }
             GameManager.OnPieceMoved(this, lastPos, newMove);
+            //If we were in check we shouldn't be now
             GameManager.OnOutCheck(Team);
             ClearSquares();
         }
 
+        /// <summary>
+        /// A method used to move the rook during castling, since techinically it's the king that has to castle
+        /// </summary>
+        /// <param name="newPos"></param>
         public void RookCastle(string newPos)
         {
             if (Piece.PieceType != PieceType.Rook) return;
@@ -195,6 +206,9 @@ namespace InexperiencedDeveloper.Chess.Core
             CheckCastling();
             InvokeMoveAndAttackChanges();
         }
+        /// <summary>
+        /// Displays the moves using the Grid GameObjects
+        /// </summary>
         private void ShowPossibleMoves()
         {
             ClearSquares();
@@ -372,11 +386,11 @@ namespace InexperiencedDeveloper.Chess.Core
             int isWhite = Team == Team.White ? 1 : -1;
             (int rowChange, int colChange)[] directionOffsets =
             {
-        (1, 1),   // Right-up
-        (-1, 1),  // Left-up
-        (-1, -1), // Left-down
-        (1, -1)   // Right-down
-        };
+                (1, 1),   // Right-up
+                (-1, 1),  // Left-up
+                (-1, -1), // Left-down
+                (1, -1)   // Right-down
+            };
             (List<string> squares, bool isPinned) pinned = IsPinned();
             if (type == PieceType.Pawn)
             {
@@ -463,15 +477,15 @@ namespace InexperiencedDeveloper.Chess.Core
             if (IsPinned().isPinned) return;
             (int rowChange, int colChange)[] directionOffsets =
             {
-        (1, 2),  // Up-right
-        (-1, 2), // Up-left
-        (-2, 1), // Left-up
-        (-2, -1), // Left-down
-        (1, -2), // Down-right
-        (-1, -2), // Down-left
-        (2, 1), // Right-up
-        (2, -1) // Right-down
-    };
+                (1, 2),  // Up-right
+                (-1, 2), // Up-left
+                (-2, 1), // Left-up
+                (-2, -1), // Left-down
+                (1, -2), // Down-right
+                (-1, -2), // Down-left
+                (2, 1), // Right-up
+                (2, -1) // Right-down
+            };
 
             foreach (var offset in directionOffsets)
             {
@@ -487,9 +501,18 @@ namespace InexperiencedDeveloper.Chess.Core
             }
         }
 
+        /// <summary>
+        /// The default method for searching if a piece can move to a certain square
+        /// </summary>
+        /// <param name="pos"></param>
+        /// <param name="canMoveHere"></param>
+        /// <param name="pinnedSquares"></param>
+        /// <returns></returns>
         private bool SearchSquare(string pos, ref bool canMoveHere, List<string> pinnedSquares = null)
         {
+            //If we are in double check and we aren't the king, we can't move
             if (m_player != null && m_player.DoubleCheck && Piece.PieceType != PieceType.King) return true;
+            //If we are in check, we aren't the king, and our move doesn't block/capture we can't move there
             if (m_player != null && m_player.InCheck.inCheck && Piece.PieceType != PieceType.King &&
                 m_player.InCheck.checkSquares != null && !m_player.InCheck.checkSquares.Contains(pos)) return true;
             ChessPieceMono piece = GameManager.ChessPieces[pos];
@@ -535,10 +558,6 @@ namespace InexperiencedDeveloper.Chess.Core
             }
             else if (m_piece.PieceType != PieceType.Pawn && piece.Team != Team)
             {
-                if ((m_player != null && Piece.PieceType == PieceType.King && m_player.InCheck.inCheck))
-                {
-
-                }
                 if (m_piece.PieceType != PieceType.Pawn)
                         ThreatenedSquares.Add(move.Pos);
                 if (canMoveHere && pinnedSquares == null)
@@ -552,6 +571,12 @@ namespace InexperiencedDeveloper.Chess.Core
                     AttackingPieces.Add(piece);
                     PossibleMoves.Add(move);
                 }
+                return true;
+            }
+            else if(piece.Team == Team)
+            {
+                canMoveHere = false;
+                ThreatenedSquares.Add(move.Pos);
                 return true;
             }
             else
